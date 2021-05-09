@@ -53,11 +53,11 @@ def draw_block_list(ax,blocks):
   v = np.array([[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]],dtype='float')
   f = np.array([[0,1,5,4],[1,2,6,5],[2,3,7,6],[3,0,4,7],[0,1,2,3],[4,5,6,7]])
   clr = blocks[:,6:]/255
-  n = blocks.shape[0]
+  n = blocks.shape[0]                    # n obstacles
   d = blocks[:,3:6] - blocks[:,:3] 
-  vl = np.zeros((8*n,3))
-  fl = np.zeros((6*n,4),dtype='int64')
-  fcl = np.zeros((6*n,3))
+  vl = np.zeros((8*n,3))                 # 8 vertices 
+  fl = np.zeros((6*n,4),dtype='int64')   # 6 faces
+  fcl = np.zeros((6*n,3))                # face color
   for k in range(n):
     vl[k*8:(k+1)*8,:] = v * d[k] + blocks[k,:3]
     fl[k*6:(k+1)*6,:] = f + k*8
