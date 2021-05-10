@@ -83,7 +83,7 @@ def runtest(mapfile, start, goal, verbose = True):
   '''
   # Load a map and instantiate a motion planner
   boundary, blocks = load_map(mapfile)
-  MP = Planner.MyPlanner(boundary, blocks) # TODO: replace this with your own planner implementation
+  MP = Planner.AStarPlanner(boundary, blocks, res=0.1) # TODO: replace this with your own planner implementation
   
   # Display the environment
   if verbose:
@@ -91,7 +91,7 @@ def runtest(mapfile, start, goal, verbose = True):
   
   # Call the motion planner
   t0 = tic()
-  path = MP.plan(start, goal)
+  path = MP.plan(start, goal, eps=10)
   toc(t0,"Planning")
   
   # Plot the path
@@ -179,7 +179,7 @@ def test_monza(verbose = False):
 
 
 if __name__=="__main__":
-  test_single_cube(True)
+  # test_single_cube(True)
   test_maze(True)
   test_flappy_bird(True)
   test_monza(True)
