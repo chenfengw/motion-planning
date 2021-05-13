@@ -49,17 +49,16 @@ class PathChecker(BasePlanner):
     """
     return not self.is_point_inside_obstacles(point)
 
-  def does_segment_clear_obstacles(self, start, end, r):
+  def does_segment_intersect_obstacles(self, start, end, defaultpass=False):
     """
-    Check if the line segment formed by start and end clears from all obstacles. 
-    return True if the linesegment does not intersects with any obstacle.
-    
-    start: the beginning of line segment. np array, start.shape = (3,)
-    end: the end of the line segment. np array, end.shape = (3,)
-    r: double, grid resolution
+    Test if line segment intersect with all obstacles
+
+    return: True if intersect with at least one obstacles.
     """
-    points = utils.discretize_line_segment(start, end, r=r)
-    return all(map(self.is_point_outside_obstacles, points))
+    if defaultpass:
+      return False
+
+    return utils.ray_cubes_intersection(start, end, self.blocks[:,:6])
 
   def is_near_goal(self, point, goal, d=0.1):
     """
@@ -151,11 +150,9 @@ class AStarPlanner:
     node_j = start
 
     # main A* algorithm
-    while utils.dist(node_j, goal) > 0.1:
-      # print(utils.dist(node_j, goal))
+    while utils.dist(node_j, goal) > self.res:
       node_i, _ = open_pq.popitem() # node_i is tuple
       closed.add(node_i)
-      # print(f"node_i is {node_i}")
 
       # iterate all children of node i
       for k in range(numofdirs):
@@ -163,10 +160,10 @@ class AStarPlanner:
         node_j = tuple(node_j)
 
         # check if node_j is valid node
-        # if node_j not in closed and \
-        #    self.checker.is_point_inside_boundary(node_j) and \
-        #    self.checker.does_segment_clear_obstacles(node_i, node_j, r=self.res):
-        if node_j not in closed:
+        if node_j not in closed and \
+           self.checker.is_point_inside_boundary(node_j) and \
+           not self.checker.does_segment_intersect_obstacles(node_i, node_j, defaultpass=False):
+
           new_cost = arrival_costs[node_i] + utils.dist(node_i, node_j) # g_j
           
           # see if node j is worth going
@@ -175,7 +172,7 @@ class AStarPlanner:
             parent[node_j] = node_i
             
             # check for early stoping
-            if self.checker.is_near_goal(node_j, goal, d=0.1):
+            if self.checker.is_near_goal(node_j, goal, d=self.res):
               return AStarPlanner.get_optimal_path(start, node_j, parent)
 
             # update label for node j in open_pq or add node_j
