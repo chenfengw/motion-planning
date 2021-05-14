@@ -23,9 +23,9 @@ class PathChecker(BasePlanner):
     """
     point: the point you want to check. point.shape = (3,)
     """
-    if point[0] < self.boundary[0,0] or point[0] > self.boundary[0,3] or \
-       point[1] < self.boundary[0,1] or point[1] > self.boundary[0,4] or \
-       point[2] < self.boundary[0,2] or point[2] > self.boundary[0,5]:
+    if point[0] <= self.boundary[0,0] or point[0] >= self.boundary[0,3] or \
+       point[1] <= self.boundary[0,1] or point[1] >= self.boundary[0,4] or \
+       point[2] <= self.boundary[0,2] or point[2] >= self.boundary[0,5]:
       return False
     else:
       return True
@@ -122,12 +122,11 @@ class MyPlanner(BasePlanner):
     return np.array(path)
 
 class AStarPlanner:
-  def __init__(self, boundary, blocks, res=0.1):
+  def __init__(self, boundary, blocks):
     # res: resolution of the 26 connected grid
     self.checker = PathChecker(boundary, blocks)
-    self.res = res
   
-  def plan(self, start, goal, eps=10):
+  def plan(self, start, goal, res=0.1, eps=10, stopping_criteria=0.1, max_iter=800000):
     """
     Plan optimal path using A*
     start: np array, shape (3,)
@@ -139,51 +138,58 @@ class AStarPlanner:
     [dX,dY,dZ] = np.meshgrid([-1,0,1],[-1,0,1],[-1,0,1])
     dR = np.vstack((dX.flatten(),dY.flatten(),dZ.flatten())) # dR.shape = (3,27)
     dR = np.delete(dR,13,axis=1)  # delete [0,0,0]
-    dR = dR / np.linalg.norm(dR,axis=0) * self.res
+    dR = dR * res
+
 
     # initialize label
-    arrival_costs = defaultdict(lambda:float("inf"))
-    arrival_costs[start] = 0
-    open_pq = pqdict({start: 0})
+    # arrival_costs = defaultdict(lambda:float("inf"))
+    # arrival_costs[start] = 0
+    # {key: node, val: (f: arrival cost + heuristic, g: arrival_cost, parent)}
+    open_pq = pqdict({start: (0, 0)}, key=lambda x: x[0]) 
     closed = set()
     parent = {}
     node_j = start
-
+    counter = 0
+    
     # main A* algorithm
-    while utils.dist(node_j, goal) > self.res:
-      node_i, _ = open_pq.popitem() # node_i is tuple
+    while open_pq:
+      counter += 1
+      node_i, (_, arrival_cost_i) = open_pq.popitem() # node_i is tuple
       closed.add(node_i)
+
+      # check for stopping criteria
+      if utils.dist(node_i,goal) <= stopping_criteria or counter >= max_iter:
+        return AStarPlanner.get_optimal_path(start, node_i, parent), closed
+
+      # check if can reach goal directly
+      if utils.dist(node_i,goal) <= res and \
+         not self.checker.does_segment_intersect_obstacles(node_i, goal, defaultpass=False):
+        parent[goal] = node_i
+        goal_arrival_cost = arrival_cost_i + utils.dist(node_i, goal)
+        open_pq[goal] = (goal_arrival_cost, goal_arrival_cost)
 
       # iterate all children of node i
       for k in range(numofdirs):
-        node_j = np.array(node_i) + dR[:,k] # node_j.shape = (3,)
+        node_j = np.around(np.array(node_i) + dR[:,k], decimals=2)  # node_j.shape = (3,)
         node_j = tuple(node_j)
 
         # check if node_j is valid node
         if node_j not in closed and \
            self.checker.is_point_inside_boundary(node_j) and \
            not self.checker.does_segment_intersect_obstacles(node_i, node_j, defaultpass=False):
-
-          new_cost = arrival_costs[node_i] + utils.dist(node_i, node_j) # g_j
+          
+          # compute new arrival cost to j
+          new_cost = arrival_cost_i + utils.dist(node_i, node_j) # g_j
+          total_cost = new_cost + eps*utils.dist(node_j, goal)
           
           # see if node j is worth going
-          if new_cost < arrival_costs[node_j]:
-            arrival_costs[node_j] = new_cost
+          if node_j not in open_pq or new_cost < open_pq[node_j][1]:
+            open_pq[node_j] = (new_cost + eps * utils.dist(node_j, goal), new_cost)
             parent[node_j] = node_i
-            
-            # check for early stoping
-            if self.checker.is_near_goal(node_j, goal, d=self.res):
-              return AStarPlanner.get_optimal_path(start, node_j, parent)
+            # closed.add(node_j)
 
-            # update label for node j in open_pq or add node_j
-            open_pq[node_j] = new_cost + eps*AStarPlanner.heuristic(node_j, goal)
-
-    # retrieve the optimal path
-    return AStarPlanner.get_optimal_path(start, node_j, parent)
-
-  @staticmethod 
-  def heuristic(point, goal):
-    return utils.dist(point, goal)
+    # return no path if can't find one
+    return np.array([])
 
   @staticmethod
   def get_optimal_path(start, goal, parent):

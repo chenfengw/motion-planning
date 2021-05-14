@@ -77,3 +77,7 @@ t_min = ray_cubes_intersection(start, goal, blocks[:,:6])
 for block_idx in range(blocks.shape[0]):
     print(ray_cube_intersection(start, goal, blocks[block_idx, :6]))
 # %%
+x = set()
+x.add((1,2,3))
+x.add((4,5,6))
+# %%
