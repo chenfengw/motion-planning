@@ -70,14 +70,10 @@ def ray_cubes_intersection(start, goal, obstacles):
   obstacles = obstacles.reshape(-1, 2, 3) # obstacles.shape = (n_blocks, 2(min, max), 3(x,y,z))
   delta = goal - start + 1e-8 # delta.shape = (3,)
   t = (obstacles - start) / delta  # t.shape = (n_blocks, 2(min, max), 3(x,y,z))
-  t_min = np.min(t, axis=1).max(axis=1)  # t_min.shape = (n_blocks,)
-  t_max = np.max(t, axis=1).min(axis=1)  # t_max.shape = (n_blocks,)
+  t_enter = np.min(t, axis=1).max(axis=1)  # t_enter.shape = (n_blocks,) ray first hit the box
+  t_exit = np.max(t, axis=1).min(axis=1)  # t_exit.shape = (n_blocks,) ray exit the box
 
-  # return np.any(
-  #               (t_max > t_min) &
-  #               (((0 <= t_min) & (t_min <= 1)) | ((0 <= t_max) & (t_max <= 1)))
-  #              )
   return np.any(
-                (t_max > t_min) &
-                ((0 <= t_min) & (t_min <= 1))
+                (t_exit > t_enter) &
+                ((0 <= t_enter) & (t_enter <= 1))
                )
