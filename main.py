@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import time
 import matplotlib.pyplot as plt; plt.ion()
@@ -93,12 +94,12 @@ def runtest(mapfile, start, goal, verbose, **kwargs):
   # Call the motion planner
   t0 = tic()
   path, closed = MP.plan(start, goal, **kwargs)
-  toc(t0,"Planning")
+  toc(t0,f"Planning for {os.path.basename(mapfile).split('.')[0]}")
   
   # Plot the path
   if verbose:
     # x,y,z = zip(*closed)
-    # ax.scatter(x[::5],y[::5],z[::5])
+    # ax.scatter(x,y,z)
     ax.plot(path[:,0],path[:,1],path[:,2],'r-')
 
   # TODO: You should verify whether the path actually intersects any of the obstacles in continuous space
