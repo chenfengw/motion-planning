@@ -1,7 +1,16 @@
 # ECE276B PR2 SP20 
 
-## Overview
-In this assignment, you will implement and compare the performance of search-based and sampling-based motion planning algorithms on several 3-D environments.
+## A*
+To run A* 
+```
+python main_AStar.py
+```
+
+## RRT*
+To run RRT*
+```
+python main_rrtStar.py
+```
 
 ### 1. main.py
 This file contains examples of how to load and display the 7 environments and how to call a motion planner and plot the planned path. Feel free to modify this file to fit your specific goals for the project. In particular, you should certainly replace Line 104 with a call to a function which checks whether the planned path intersects the boundary or any of the blocks in the environment.

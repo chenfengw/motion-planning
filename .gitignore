@@ -1,5 +1,7 @@
 # ignore for submission
 maps/
+*output*.txt
+param_tuning.txt
 
 # custom files
 *.DS_Store

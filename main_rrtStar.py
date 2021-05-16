@@ -4,10 +4,14 @@ import time
 import matplotlib.pyplot as plt; plt.ion()
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-import Planner
+from src.rrt.rrt_star import RRTStar
+from src.search_space.search_space import SearchSpace
+from src.utilities.plotting import Plot
 
 def tic():
   return time.time()
+
+
 def toc(tstart, nm=""):
   print('%s took: %s sec.\n' % (nm,(time.time() - tstart)))
   
@@ -73,7 +77,7 @@ def draw_block_list(ax,blocks):
     return h
 
 
-def runtest(mapfile, start, goal, verbose, **kwargs):
+def runtest(mapfile, start, goal, r=0.1):
   '''
   # res=1, eps=10, stopping_criteria="res"
   This function:
@@ -83,40 +87,57 @@ def runtest(mapfile, start, goal, verbose, **kwargs):
    * checks whether the path is collision free and reaches the goal
    * computes the path length as a sum of the Euclidean norm of the path segments
   '''
+  # map name
+  map_name = os.path.basename(mapfile).split('.')[0] # name of the map
+
+  # convert start goal to tuple
+  start = tuple(start)
+  goal = tuple(goal)
+  
   # Load a map and instantiate a motion planner
   boundary, blocks = load_map(mapfile)
-  MP = Planner.AStarPlanner(boundary, blocks) # TODO: replace this with your own planner implementation
-  
-  # Display the environment
-  if verbose:
-    fig, ax, hb, hs, hg = draw_map(boundary, blocks, start, goal)  
-  
-  # Call the motion planner
-  t0 = tic()
-  path, closed = MP.plan(start, goal, **kwargs)
-  toc(t0,f"Planning for {os.path.basename(mapfile).split('.')[0]}")
-  
-  # Plot the path
-  if verbose:
-    # x,y,z = zip(*closed)
-    # ax.scatter(x,y,z)
-    ax.plot(path[:,0],path[:,1],path[:,2],'r-')
+  boundary = boundary[0,:6].reshape(3,2,order="F") # [(x_lower, x_upper), (y_lower, y_upper), ...]
+  blocks = blocks[:,:6] # blocks.shape = (n_obstacles, 6)
 
+  # RRT config
+  Q = np.array([(1, 1)])  # length of tree edges
+  r = r  # length of smallest edge to check for intersection with obstacles
+  max_samples = 15000  # max number of samples to take before timing out
+  rewire_count = 32  # optional, number of nearby branches to rewire
+  prc = 0.1  # probability of checking for a connection to goal
+
+  # create Search Space
+  X = SearchSpace(boundary, blocks)
+
+  # create rrt_search
+  rrt = RRTStar(X, Q, start, goal, max_samples, r, prc, rewire_count)
+  t0 = tic()
+  path = rrt.rrt_star()
+  toc(t0,f"Planning for {os.path.basename(mapfile).split('.')[0]}")
+
+  # plot
+  plot = Plot(map_name)
+  plot.plot_tree(X, rrt.trees)
+  if path is not None:
+    plot.plot_path(X, path)
+  plot.plot_obstacles(X, blocks)
+  plot.plot_start(X, start)
+  plot.plot_goal(X, goal)
+  plot.draw(auto_open=True)
+  
   # TODO: You should verify whether the path actually intersects any of the obstacles in continuous space
   # TODO: You can implement your own algorithm or use an existing library for segment and 
   #       axis-aligned bounding box (AABB) intersection 
-  collision = False
-  goal_reached = sum((path[-1]-goal)**2) <= 0.1
-  success = (not collision) and goal_reached
-  pathlength = np.sum(np.sqrt(np.sum(np.diff(path,axis=0)**2,axis=1)))
-  return success, pathlength
+  goal_reached = path is not None # path is not none if goal is reached
+  pathlength = np.sum(np.sqrt(np.sum(np.diff(path,axis=0)**2,axis=1))) if goal_reached else float("inf")
+  return goal_reached, pathlength
 
 
 def test_single_cube(verbose = False):
   print('Running single cube test...\n') 
   start = np.array([2.3, 2.3, 1.3])
   goal = np.array([7.0, 7.0, 5.5])
-  success, pathlength = runtest('./maps/single_cube.txt', start, goal, verbose, res=1, eps=10)
+  success, pathlength = runtest('./maps/single_cube.txt', start, goal)
   print('Success: %r'%success)
   print('Path length: %d'%pathlength)
   print('\n')
@@ -126,7 +147,7 @@ def test_maze(verbose = False):
   print('Running maze test...\n') 
   start = np.array([0.0, 0.0, 1.0])
   goal = np.array([12.0, 12.0, 5.0])
-  success, pathlength = runtest('./maps/maze.txt', start, goal, verbose, res=0.5, eps=1, max_iter=5000*3)
+  success, pathlength = runtest('./maps/maze.txt', start, goal)
   print('Success: %r'%success)
   print('Path length: %d'%pathlength)
   print('\n')
@@ -136,7 +157,7 @@ def test_window(verbose = False):
   print('Running window test...\n') 
   start = np.array([0.2, -4.9, 0.2])
   goal = np.array([6.0, 18.0, 3.0])
-  success, pathlength = runtest('./maps/window.txt', start, goal, verbose, res=1, eps=10)
+  success, pathlength = runtest('./maps/window.txt', start, goal)
   print('Success: %r'%success)
   print('Path length: %d'%pathlength)
   print('\n')
@@ -146,7 +167,7 @@ def test_tower(verbose = False):
   print('Running tower test...\n') 
   start = np.array([2.5, 4.0, 0.5])
   goal = np.array([4.0, 2.5, 19.5])
-  success, pathlength = runtest('./maps/tower.txt', start, goal, verbose, res=0.5, eps=2)
+  success, pathlength = runtest('./maps/tower.txt', start, goal)
   print('Success: %r'%success)
   print('Path length: %d'%pathlength)
   print('\n')
@@ -156,7 +177,7 @@ def test_flappy_bird(verbose = False):
   print('Running flappy bird test...\n') 
   start = np.array([0.5, 2.5, 5.5])
   goal = np.array([19.0, 2.5, 5.5])
-  success, pathlength = runtest('./maps/flappy_bird.txt', start, goal, verbose, res=1, eps=2)
+  success, pathlength = runtest('./maps/flappy_bird.txt', start, goal)
   print('Success: %r'%success)
   print('Path length: %d'%pathlength) 
   print('\n')
@@ -166,7 +187,7 @@ def test_room(verbose = False):
   print('Running room test...\n') 
   start = np.array([1.0, 5.0, 1.5])
   goal = np.array([9.0, 7.0, 1.5])
-  success, pathlength = runtest('./maps/room.txt', start, goal, verbose, res=0.5, eps=10)
+  success, pathlength = runtest('./maps/room.txt', start, goal)
   print('Success: %r'%success)
   print('Path length: %d'%pathlength)
   print('\n')
@@ -178,7 +199,7 @@ def test_monza(verbose = False):
   # start = np.array([0.5, 1.0, 0.1])
   goal = np.array([3.8, 1.0, 0.1])
   # goal = np.array([3.8, 20.0, 0.1])
-  success, pathlength = runtest('./maps/monza.txt', start, goal, verbose, res=0.5, eps=0, stopping_criteria=0.1, max_iter=50000*1.5)
+  success, pathlength = runtest('./maps/monza.txt', start, goal, r=0.05)
   print('Success: %r'%success)
   print('Path length: %d'%pathlength)
   print('\n')
@@ -186,16 +207,9 @@ def test_monza(verbose = False):
 
 if __name__=="__main__":
   # test_single_cube(True)
-  test_maze(True)
-  # test_flappy_bird(True)
+  # test_maze(True)
+  test_flappy_bird(True)
   # test_monza(True)  
   # test_window(True)
   # test_tower(True) 
-  # test_room(True) 
-  plt.show(block=True)
-
-
-
-
-
-
+  # test_room(True)

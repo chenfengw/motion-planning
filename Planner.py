@@ -15,10 +15,14 @@ class BasePlanner:
     self.blocks = blocks
     self.n_obstacles = blocks.shape[0]
 
+    # inflate obstacles
+    self.blocks[:,:3] = self.blocks[:,:3] - 0.05 # decrease min
+    self.blocks[:,3:] = self.blocks[:,3:] + 0.05 # increase max
+    
 class PathChecker(BasePlanner):
   def __init__(self, boundary, blocks):
     super().__init__(boundary, blocks)
-  
+
   def is_point_inside_boundary(self, point):
     """
     point: the point you want to check. point.shape = (3,)
@@ -180,13 +184,11 @@ class AStarPlanner:
           
           # compute new arrival cost to j
           new_cost = arrival_cost_i + utils.dist(node_i, node_j) # g_j
-          total_cost = new_cost + eps*utils.dist(node_j, goal)
           
-          # see if node j is worth going
+          # initialize probity for node j or update its priority 
           if node_j not in open_pq or new_cost < open_pq[node_j][1]:
             open_pq[node_j] = (new_cost + eps * utils.dist(node_j, goal), new_cost)
             parent[node_j] = node_i
-            # closed.add(node_j)
 
     # return no path if can't find one
     return np.array([])
