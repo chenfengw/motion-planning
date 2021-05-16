@@ -20,5 +20,3 @@ This file contains an implementation of a baseline planner. The baseline planner
 
 ### 3. maps
 This folder contains the 7 test environments described via a rectangular outer boundary and a list of rectangular obstacles. The start and goal points for each environment are specified in main.py.
-
-

@@ -144,11 +144,8 @@ class AStarPlanner:
     dR = np.delete(dR,13,axis=1)  # delete [0,0,0]
     dR = dR * res
 
-
     # initialize label
-    # arrival_costs = defaultdict(lambda:float("inf"))
-    # arrival_costs[start] = 0
-    # {key: node, val: (f: arrival cost + heuristic, g: arrival_cost, parent)}
+    # {key: node, val: (f: arrival cost + heuristic, g: arrival_cost)}
     open_pq = pqdict({start: (0, 0)}, key=lambda x: x[0]) 
     closed = set()
     parent = {}
@@ -208,5 +205,3 @@ class AStarPlanner:
       node = parent[node]
 
     return np.array(optimal_path)
-
-

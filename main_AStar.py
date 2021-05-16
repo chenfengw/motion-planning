@@ -185,17 +185,11 @@ def test_monza(verbose = False):
 
 
 if __name__=="__main__":
-  # test_single_cube(True)
-  # test_maze(True)
+  test_single_cube(True)
+  test_maze(True)
   test_flappy_bird(True)
-  # test_monza(True)  
-  # test_window(True)
-  # test_tower(True) 
-  # test_room(True) 
+  test_monza(True)  
+  test_window(True)
+  test_tower(True) 
+  test_room(True) 
   plt.show(block=True)
-
-
-
-
-
-
