@@ -1,5 +1,4 @@
 # ignore for submission
-maps/
 *output*.txt
 param_tuning.txt
 
@@ -7,10 +6,10 @@ param_tuning.txt
 *.DS_Store
 *.pdf
 .vscode/
-*.svg
-*.png
+images/
 report.md
-
+test.py
+main_rrtStar.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

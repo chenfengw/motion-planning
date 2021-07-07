@@ -3,7 +3,8 @@ np.seterr(divide='ignore', invalid='ignore')
 
 
 def discretize_line_segment(start, end, r=0.1):
-  """discriteze a line segment
+  """discriteze a line segment into points with given
+  resolution.
 
   Args:
     start (np array): starting point of line segment. shape (3,)
@@ -11,7 +12,7 @@ def discretize_line_segment(start, end, r=0.1):
     r (float, optional): resolution. Defaults to 0.1.
 
   Returns:
-    list: list of array of size (3,)
+    list: contains discritized points. Each point has shape (3,)
   """
   if not isinstance(start, np.ndarray):
     start = np.array(start)
@@ -36,7 +37,8 @@ def dist(point1, point2):
 def ray_cube_intersection(start, goal, obstacle):
   """
   Detect intersection with one obstacle
-
+  start: shape (3,), starting point of the ray
+  goal: shape (3,), ending point of the ray
   obstacle: shape (6,): [xmin, ymin, zmin, xmax, ymax, zmax]
   return: true if given segment defined by start->goal intersect with
   the given cube.
